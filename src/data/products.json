@@ -1,0 +1,43 @@
+
+[
+  {
+    "id": "1",
+    "name": "Organic Apples",
+    "sku": "FRU-APP-001",
+    "price": 2.99,
+    "quantity": 100,
+    "imageUrl": "https://picsum.photos/seed/apples/400/300"
+  },
+  {
+    "id": "2",
+    "name": "Whole Wheat Bread",
+    "sku": "BAK-BRD-002",
+    "price": 4.50,
+    "quantity": 50,
+    "imageUrl": "https://picsum.photos/seed/bread/400/300"
+  },
+  {
+    "id": "3",
+    "name": "Free-Range Eggs (Dozen)",
+    "sku": "DRY-EGG-003",
+    "price": 3.75,
+    "quantity": 75,
+    "imageUrl": "https://picsum.photos/seed/eggs/400/300"
+  },
+  {
+    "id": "4",
+    "name": "Natural Almond Milk",
+    "sku": "DRK-MLK-004",
+    "price": 3.25,
+    "quantity": 60,
+    "imageUrl": "https://picsum.photos/seed/milk/400/300"
+  },
+  {
+    "id": "5",
+    "name": "Avocado",
+    "sku": "FRU-AVO-005",
+    "price": 1.99,
+    "quantity": 120,
+    "imageUrl": "https://picsum.photos/seed/avocado/400/300"
+  }
+]
