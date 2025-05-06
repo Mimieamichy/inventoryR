@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -5,6 +6,7 @@ export interface Product {
   price: number;
   quantity: number;
   imageUrl?: string;
+  'data-ai-hint'?: string; // For picsum image generation hints
 }
 
 export interface CartItem extends Product {
@@ -20,12 +22,22 @@ export interface SaleItem {
 }
 
 export interface Sale {
-  id: string;
+  id:string;
   items: SaleItem[];
   subtotal: number;
   taxRate: number;
   taxAmount: number;
   total: number;
   timestamp: string;
-  cashierId: string;
+  cashierId: string; // Will correspond to User.username
+}
+
+export type UserRole = 'admin' | 'cashier';
+
+export interface User {
+  id: string;
+  username: string;
+  password?: string; // IMPORTANT: Only for simulation. DO NOT store plain text passwords in production.
+  role: UserRole;
+  name: string;
 }

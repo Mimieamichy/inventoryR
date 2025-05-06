@@ -1,3 +1,4 @@
+
 "use client";
 
 import { ProductForm } from '@/components/product/ProductForm';
@@ -7,9 +8,27 @@ import { AlertTriangle, ListOrdered } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function StockInitializationPage() {
-  const { products, loading } = useProducts();
+  const { products, loading: productsLoading } = useProducts();
+  const { isAdmin, loading: authLoading, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!authLoading && (!isAuthenticated || !isAdmin)) {
+      toast({ title: "Access Denied", description: "You must be an admin to access this page.", variant: "destructive"});
+      router.push('/login');
+    }
+  }, [authLoading, isAuthenticated, isAdmin, router, toast]);
+
+  if (authLoading || productsLoading || !isAdmin) {
+    return <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">Loading stock and permissions...</div>;
+  }
 
   return (
     <div className="space-y-8">
@@ -23,11 +42,9 @@ export default function StockInitializationPage() {
           <CardDescription>A quick glance at the products currently in your catalog.</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-             <p className="text-muted-foreground">Loading stock data...</p>
-          ) : products.length > 0 ? (
+          {products.length > 0 ? (
             <ul className="space-y-3">
-              {products.slice(0, 5).map((product) => ( // Show first 5 products as an overview
+              {products.slice(0, 5).map((product) => ( 
                 <li key={product.id} className="flex justify-between items-center p-3 bg-secondary/50 rounded-md">
                   <div>
                     <p className="font-semibold text-secondary-foreground">{product.name} <span className="text-xs text-muted-foreground">(SKU: {product.sku})</span></p>

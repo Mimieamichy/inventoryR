@@ -1,34 +1,54 @@
+
 "use client";
 
 import { useSales } from '@/contexts/SaleContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Eye, History, AlertTriangle } from 'lucide-react';
+import { Eye, History, AlertTriangle, BarChart3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
-export default function SalesHistoryPage() {
+export default function AllSalesHistoryPage() {
   const { sales } = useSales();
+  const { isAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  useEffect(() => {
+    if (!authLoading && (!isAuthenticated || !isAdmin)) {
+      toast({ title: "Access Denied", description: "You must be an admin to view all sales history.", variant: "destructive"});
+      router.push('/login');
+    }
+  }, [authLoading, isAuthenticated, isAdmin, router, toast]);
 
-  const sortedSales = [...sales].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const sortedSales = useMemo(() => {
+    return [...sales].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [sales]);
+
+  if (authLoading || !isAdmin) {
+    return <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">Checking permissions...</div>;
+  }
 
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center">
-        <History className="mr-3 h-8 w-8 text-primary" /> Sales History
+        <BarChart3 className="mr-3 h-8 w-8 text-primary" /> All Sales History
       </h1>
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>All Recorded Sales</CardTitle>
-          <CardDescription>Browse through all completed transactions.</CardDescription>
+          <CardDescription>Browse through all completed transactions in the system.</CardDescription>
         </CardHeader>
         <CardContent>
           {sortedSales.length > 0 ? (
@@ -37,9 +57,9 @@ export default function SalesHistoryPage() {
                 <TableRow>
                   <TableHead>Sale ID</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Cashier</TableHead>
                   <TableHead className="text-right">Items</TableHead>
                   <TableHead className="text-right">Total Amount</TableHead>
-                  <TableHead className="text-center">Cashier</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -50,9 +70,9 @@ export default function SalesHistoryPage() {
                         <Badge variant="secondary" className="text-xs">{sale.id.substring(0,12)}...</Badge>
                     </TableCell>
                     <TableCell>{isClient ? new Date(sale.timestamp).toLocaleDateString() : '...'}</TableCell>
+                    <TableCell>{sale.cashierId}</TableCell>
                     <TableCell className="text-right">{sale.items.reduce((acc, item) => acc + item.quantity, 0)}</TableCell>
                     <TableCell className="text-right font-semibold text-primary">${sale.total.toFixed(2)}</TableCell>
-                    <TableCell className="text-center">{sale.cashierId}</TableCell>
                     <TableCell className="text-right">
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/receipt/${sale.id}`}>
@@ -69,7 +89,7 @@ export default function SalesHistoryPage() {
                 <AlertTriangle className="h-5 w-5 text-secondary-foreground" />
                 <AlertTitle className="font-semibold text-secondary-foreground">No Sales Recorded</AlertTitle>
                 <AlertDescription className="text-muted-foreground">
-                  There are no sales transactions recorded yet. Completed sales will appear here.
+                  There are no sales transactions recorded in the system yet.
                 </AlertDescription>
               </Alert>
           )}
