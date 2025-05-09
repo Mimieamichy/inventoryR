@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { User, UserRole } from '@/types';
@@ -22,7 +21,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Default admin user (IMPORTANT: For simulation only. Use a secure backend in production)
-const DEFAULT_ADMIN_USER: User = {
+export const DEFAULT_ADMIN_USER: User = {
   id: 'admin-001',
   username: 'admin',
   password: 'password', // Simulate password for login
@@ -45,6 +44,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(false);
   }, [users, currentUser, setCurrentUser]);
 
+
+  // The following block was removed as it caused hydration mismatches:
+  // if (loading && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+  //    // Show a simple loading state or null to prevent flashing content if not on login page
+  //    // and authentication is still loading
+  //    return null; 
+  // }
+  // AuthProvider will now always render its children. Child components are responsible for
+  // displaying their own loading states (e.g., skeletons) based on the `loading`
+  // value from this context. This ensures consistency between server and client renders.
 
   const login = (username: string, password?: string): boolean => {
     const user = users.find((u) => u.username === username);
@@ -97,12 +106,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isAdmin = currentUser?.role === 'admin';
   const isCashier = currentUser?.role === 'cashier';
 
-  if (loading && typeof window !== 'undefined' && window.location.pathname !== '/login') {
-     // Show a simple loading state or null to prevent flashing content if not on login page
-     // and authentication is still loading
-     return null; 
-  }
-
   return (
     <AuthContext.Provider value={{ currentUser, users, login, logout, registerUser, isAuthenticated, isAdmin, isCashier, loading }}>
       {children}
@@ -117,3 +120,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
