@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth, DEFAULT_ADMIN_USER } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Users, AlertTriangle, Trash2 } from 'lucide-react';
+import { UserPlus, Users, AlertTriangle, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { User } from '@/types';
@@ -43,6 +43,7 @@ export default function ManageUsersPage() {
   const [isClient, setIsClient] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<UserFormData>({
@@ -128,7 +129,29 @@ export default function ManageUsersPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" {...register("password")} placeholder="Min. 6 characters" />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showPassword ? "text" : "password"} 
+                  {...register("password")} 
+                  placeholder="Min. 6 characters" 
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
             
