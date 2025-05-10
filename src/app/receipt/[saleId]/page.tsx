@@ -9,7 +9,7 @@ import type { Sale } from '@/types';
 import { ReceiptDetails } from '@/components/receipt/ReceiptDetails';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertTriangle, Frown, ShieldAlert } from "lucide-react"
+import { AlertTriangle, Frown, ShieldAlert, Loader2 } from "lucide-react"
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -22,10 +22,16 @@ export default function ReceiptPage() {
   const saleId = params.saleId as string;
   const { getSaleById } = useSales();
   const { currentUser, isAuthenticated, isAdmin, isCashier, loading: authLoading } = useAuth();
-  const [sale, setSale] = useState<Sale | undefined | null>(undefined); // undefined for loading, null for not found/disallowed
+  
+  // Updated sale state: undefined (initial), "loading", Sale object, or "not_found", "access_denied"
+  const [saleFetchState, setSaleFetchState] = useState<Sale | "loading" | "not_found" | "access_denied" | undefined>(undefined);
+
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) {
+        setSaleFetchState(undefined); // Wait for auth to resolve
+        return;
+    }
 
     if (!isAuthenticated) {
       toast({ title: "Authentication Required", description: "Please login to view receipts.", variant: "default"});
@@ -33,24 +39,41 @@ export default function ReceiptPage() {
       return;
     }
 
-    if (saleId) {
-      const foundSale = getSaleById(saleId);
-      if (foundSale) {
-        if (isAdmin || (isCashier && currentUser && foundSale.cashierId === currentUser.username)) {
-          setSale(foundSale);
-        } else {
-          setSale(null); // Access denied
-          toast({ title: "Access Denied", description: "You do not have permission to view this receipt.", variant: "destructive"});
-        }
-      } else {
-        setSale(null); // Not found
-      }
+    if (saleId && currentUser) {
+      setSaleFetchState("loading");
+      getSaleById(saleId)
+        .then(foundSale => {
+          if (foundSale) {
+            // API should handle permission checks, but double check client-side for UI clarity
+            if (isAdmin || (isCashier && currentUser && foundSale.cashierId === currentUser.username)) {
+              setSaleFetchState(foundSale);
+            } else {
+              setSaleFetchState("access_denied");
+              toast({ title: "Access Denied", description: "You do not have permission to view this receipt.", variant: "destructive"});
+            }
+          } else {
+            setSaleFetchState("not_found");
+            // Toast for not found is handled by the getSaleById in context if API returns 404
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching receipt:", err);
+          setSaleFetchState("not_found"); // Generic error state, API might have toasted already
+          toast({ title: "Error", description: "Could not load receipt details.", variant: "destructive" });
+        });
+    } else if (!currentUser && isAuthenticated) {
+        setSaleFetchState("not_found"); // Or some other error state
+        toast({ title: "User data incomplete", description: "Cannot fetch receipt without user details.", variant: "destructive" });
     }
+
   }, [saleId, getSaleById, authLoading, isAuthenticated, isAdmin, isCashier, currentUser, router, toast]);
 
-  if (authLoading || sale === undefined) { // Loading state
+  if (authLoading || saleFetchState === undefined || saleFetchState === "loading") {
     return (
       <div className="w-full max-w-2xl mx-auto space-y-6 py-8">
+        <div className="flex justify-center items-center p-12">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
         <Skeleton className="h-12 w-1/2 mx-auto" />
         <Skeleton className="h-8 w-3/4 mx-auto" />
         <Skeleton className="h-48 w-full" />
@@ -60,8 +83,8 @@ export default function ReceiptPage() {
     );
   }
 
-  if (sale === null) { // Not found or access denied state
-    const isAccessDenied = getSaleById(saleId) !== undefined; // Check if sale exists but was denied
+  if (saleFetchState === "not_found" || saleFetchState === "access_denied") {
+    const isAccessDenied = saleFetchState === "access_denied";
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
             {isAccessDenied ? <ShieldAlert className="w-16 h-16 text-destructive mb-4" /> : <Frown className="w-16 h-16 text-destructive mb-4" />}
@@ -71,7 +94,7 @@ export default function ReceiptPage() {
                 <AlertDescription>
                 {isAccessDenied 
                   ? "You do not have permission to view this receipt." 
-                  : `The sale receipt with ID "${saleId}" could not be found or you don't have permission to view it.`}
+                  : `The sale receipt with ID "${saleId}" could not be found.`}
                 </AlertDescription>
             </Alert>
             <Button asChild variant="outline" className="mt-6">
@@ -82,6 +105,8 @@ export default function ReceiptPage() {
         </div>
     );
   }
+  // At this point, saleFetchState is a Sale object
+  const sale = saleFetchState as Sale;
 
   return (
     <div className="py-8">

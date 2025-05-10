@@ -9,11 +9,11 @@ import { CartItemCard } from '@/components/sale/CartItemCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { AlertTriangle, CheckCircle2, ShoppingCart } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ShoppingCart, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function SalePage() {
   const { cartItems, getCartTotal, clearCart, getCartItemCount } = useCart();
@@ -21,6 +21,7 @@ export default function SalePage() {
   const { currentUser, isAuthenticated, isAdmin, isCashier, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isProcessingSale, setIsProcessingSale] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || (!isAdmin && !isCashier))) {
@@ -33,7 +34,7 @@ export default function SalePage() {
   const taxAmount = subtotal * TAX_RATE;
   const total = subtotal + taxAmount;
 
-  const handleCompleteSale = () => {
+  const handleCompleteSale = async () => {
     if (cartItems.length === 0) {
       toast({ title: "Empty Cart", description: "Cannot complete sale with an empty cart.", variant: "destructive" });
       return;
@@ -44,8 +45,9 @@ export default function SalePage() {
       return;
     }
     
-    const cashierId = currentUser.username; // Use logged-in user's username
-    const sale = addSale(cartItems, cashierId);
+    setIsProcessingSale(true);
+    // cashierId is now derived from currentUser by the API via token
+    const sale = await addSale(cartItems);
 
     if (sale) {
       clearCart();
@@ -60,8 +62,10 @@ export default function SalePage() {
       });
       router.push(`/receipt/${sale.id}`);
     } else {
-      toast({ title: "Sale Failed", description: "Could not process the sale. Please try again.", variant: "destructive" });
+      // Error toast is handled by addSale in context if API call fails
+      // toast({ title: "Sale Failed", description: "Could not process the sale. Please try again.", variant: "destructive" });
     }
+    setIsProcessingSale(false);
   };
   
   if (authLoading || (!isAuthenticated || (!isAdmin && !isCashier))) {
@@ -119,11 +123,16 @@ export default function SalePage() {
           <CardFooter>
             <Button
               onClick={handleCompleteSale}
-              disabled={cartItems.length === 0}
+              disabled={cartItems.length === 0 || isProcessingSale}
               className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
               size="lg"
             >
-              <CheckCircle2 className="mr-2 h-5 w-5" /> Complete Sale
+              {isProcessingSale ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+              )}
+              {isProcessingSale ? 'Processing...' : 'Complete Sale'}
             </Button>
           </CardFooter>
         </Card>

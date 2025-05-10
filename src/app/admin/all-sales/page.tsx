@@ -7,19 +7,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Eye, History, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Eye, History, AlertTriangle, BarChart3, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import type { Sale } from '@/types';
 
 export default function AllSalesHistoryPage() {
-  const { sales } = useSales();
+  const { fetchUserSales } = useSales();
   const { isAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  
+  const [allSalesData, setAllSalesData] = useState<Sale[]>([]);
+  const [loadingSales, setLoadingSales] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -32,12 +36,38 @@ export default function AllSalesHistoryPage() {
     }
   }, [authLoading, isAuthenticated, isAdmin, router, toast]);
 
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
+      setLoadingSales(true);
+      fetchUserSales()
+        .then(data => {
+          setAllSalesData(data);
+        })
+        .catch(err => {
+          console.error("Failed to fetch all sales:", err);
+          toast({ title: "Error", description: "Could not load sales history.", variant: "destructive" });
+        })
+        .finally(() => {
+          setLoadingSales(false);
+        });
+    }
+  }, [isAuthenticated, isAdmin, fetchUserSales, toast]);
+
+
   const sortedSales = useMemo(() => {
-    return [...sales].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [sales]);
+    return [...allSalesData].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [allSalesData]);
 
   if (authLoading || !isAdmin) {
     return <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">Checking permissions...</div>;
+  }
+  
+  if (loadingSales) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">
+        <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" /> Loading sales data...
+      </div>
+    );
   }
 
   return (
