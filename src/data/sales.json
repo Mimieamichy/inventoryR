@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "id": "2025-05-10T06:10:02.449Zfsbatbi",
+    "items": [
+      {
+        "productId": "1",
+        "name": "Organic Apples",
+        "sku": "FRU-APP-001",
+        "price": 2.99,
+        "quantity": 14
+      }
+    ],
+    "subtotal": 41.86,
+    "taxRate": 0.1,
+    "taxAmount": 4.186,
+    "total": 46.046,
+    "timestamp": "2025-05-10T06:10:02.450Z",
+    "cashierId": "admin"
+  }
+]

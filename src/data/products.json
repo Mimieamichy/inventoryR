@@ -1,18 +1,17 @@
-
 [
   {
     "id": "1",
     "name": "Organic Apples",
     "sku": "FRU-APP-001",
     "price": 2.99,
-    "quantity": 100,
+    "quantity": 86,
     "imageUrl": "https://picsum.photos/seed/apples/400/300"
   },
   {
     "id": "2",
     "name": "Whole Wheat Bread",
     "sku": "BAK-BRD-002",
-    "price": 4.50,
+    "price": 4.5,
     "quantity": 50,
     "imageUrl": "https://picsum.photos/seed/bread/400/300"
   },
