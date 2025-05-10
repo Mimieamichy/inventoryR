@@ -16,5 +16,23 @@
     "total": 46.046,
     "timestamp": "2025-05-10T06:10:02.450Z",
     "cashierId": "admin"
+  },
+  {
+    "id": "2025-05-10T06:16:22.421Zbhfroy8",
+    "items": [
+      {
+        "productId": "2",
+        "name": "Whole Wheat Bread",
+        "sku": "BAK-BRD-002",
+        "price": 4.5,
+        "quantity": 1
+      }
+    ],
+    "subtotal": 4.5,
+    "taxRate": 0.1,
+    "taxAmount": 0.45,
+    "total": 4.95,
+    "timestamp": "2025-05-10T06:16:22.422Z",
+    "cashierId": "admin"
   }
 ]

@@ -12,7 +12,7 @@
     "name": "Whole Wheat Bread",
     "sku": "BAK-BRD-002",
     "price": 4.5,
-    "quantity": 50,
+    "quantity": 49,
     "imageUrl": "https://picsum.photos/seed/bread/400/300"
   },
   {
