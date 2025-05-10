@@ -16,13 +16,13 @@ import type { Sale } from '@/types';
 
 export default function AllSalesHistoryPage() {
   const { fetchUserSales } = useSales();
-  const { isAdmin, isAuthenticated, loading: authLoading } = useAuth(); // authLoading is from AuthContext
+  const { isAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   
   const [allSalesData, setAllSalesData] = useState<Sale[]>([]);
-  const [loadingSales, setLoadingSales] = useState(true); // Specific to this page's data fetching
+  const [loadingSales, setLoadingSales] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -30,8 +30,7 @@ export default function AllSalesHistoryPage() {
   
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !isAdmin)) {
-      // Toast is shown once, then redirect. Avoid repeated toasts if component lingers.
-      // Consider if toast is necessary if redirect is immediate.
+      // Toast is shown once, then redirect.
       // toast({ title: "Access Denied", description: "You must be an admin to view all sales history.", variant: "destructive"});
       router.push('/login');
     }
@@ -39,37 +38,51 @@ export default function AllSalesHistoryPage() {
 
   useEffect(() => {
     let isMounted = true;
-    if (isAuthenticated && isAdmin) {
-      setLoadingSales(true);
-      fetchUserSales()
-        .then(data => {
-          if (isMounted) {
-            setAllSalesData(data);
-          }
-        })
-        .catch(err => {
-          if (isMounted) {
-            console.error("Failed to fetch all sales:", err);
-            // Toast is handled by fetchUserSales in context now
-            // toast({ title: "Error", description: "Could not load sales history.", variant: "destructive" });
-          }
-        })
-        .finally(() => {
-          if (isMounted) {
-            setLoadingSales(false);
-          }
-        });
-    } else if (!authLoading) { // If not authenticated/admin and auth check is complete
+
+    if (authLoading) {
+        // If authentication is still loading, ensure UI reflects this.
+        // Clear any potentially stale data and set sales loading to true.
         if (isMounted) {
-            setAllSalesData([]); // Clear data if not authorized
-            setLoadingSales(false); // Not loading if not authorized to fetch
+            setAllSalesData([]);
+            setLoadingSales(true);
+        }
+    } else { // Auth is resolved
+        if (isAuthenticated && isAdmin) {
+            // If authenticated and is an admin, proceed to fetch sales data.
+            if (isMounted) {
+                setLoadingSales(true); // Indicate that sales data fetching has started.
+                fetchUserSales()
+                    .then(data => {
+                        if (isMounted) {
+                            setAllSalesData(data);
+                        }
+                    })
+                    .catch(err => {
+                        if (isMounted) {
+                            console.error("Failed to fetch all sales:", err);
+                            toast({ title: "Error", description: "Could not load sales history.", variant: "destructive" });
+                            setAllSalesData([]); // Clear data on error
+                        }
+                    })
+                    .finally(() => {
+                        if (isMounted) {
+                            setLoadingSales(false); // Sales data fetching is complete.
+                        }
+                    });
+            }
+        } else {
+            // If not authenticated or not an admin after auth check.
+            if (isMounted) {
+                setAllSalesData([]); // Clear data.
+                setLoadingSales(false); // Not loading sales if not authorized.
+            }
         }
     }
 
     return () => {
-      isMounted = false;
+      isMounted = false; // Cleanup function to set isMounted to false when component unmounts.
     };
-  }, [isAuthenticated, isAdmin, fetchUserSales, authLoading, toast]); // Added authLoading
+  }, [authLoading, isAuthenticated, isAdmin, fetchUserSales, toast]);
 
 
   const sortedSales = useMemo(() => {
@@ -78,17 +91,23 @@ export default function AllSalesHistoryPage() {
 
   // Primary loading state for auth check
   if (authLoading) {
-    return <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">Checking permissions...</div>;
+    return (
+        <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">
+            <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" /> Checking permissions...
+        </div>
+    );
   }
 
   // If auth check done, but not authenticated/admin (should be caught by redirect effect, but as a fallback)
   if (!isAuthenticated || !isAdmin) {
-     // This state should ideally lead to a quick redirect via the other useEffect.
-     // Showing a generic message or null.
-    return <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">Access Denied. Redirecting...</div>;
+    return (
+        <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">
+            Access Denied. Redirecting...
+        </div>
+    );
   }
   
-  // Sales data specific loading state
+  // Sales data specific loading state (only if authenticated and admin)
   if (loadingSales) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">
@@ -160,3 +179,4 @@ export default function AllSalesHistoryPage() {
     </div>
   );
 }
+
