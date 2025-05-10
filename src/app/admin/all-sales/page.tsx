@@ -22,7 +22,7 @@ export default function AllSalesHistoryPage() {
   const { toast } = useToast();
   
   const [allSalesData, setAllSalesData] = useState<Sale[]>([]);
-  const [loadingSales, setLoadingSales] = useState(true);
+  const [loadingSales, setLoadingSales] = useState(true); // Start true to show loading initially
 
   useEffect(() => {
     setIsClient(true);
@@ -39,48 +39,41 @@ export default function AllSalesHistoryPage() {
   useEffect(() => {
     let isMounted = true;
 
-    if (authLoading) {
-        // If authentication is still loading, ensure UI reflects this.
-        // Clear any potentially stale data and set sales loading to true.
-        if (isMounted) {
-            setAllSalesData([]);
-            setLoadingSales(true);
-        }
-    } else { // Auth is resolved
-        if (isAuthenticated && isAdmin) {
-            // If authenticated and is an admin, proceed to fetch sales data.
+    if (!authLoading && isAuthenticated && isAdmin) {
+      // Only fetch if auth is resolved and user is admin
+      if (isMounted) {
+        setLoadingSales(true); // Set loading true before fetch
+        fetchUserSales()
+          .then(data => {
             if (isMounted) {
-                setLoadingSales(true); // Indicate that sales data fetching has started.
-                fetchUserSales()
-                    .then(data => {
-                        if (isMounted) {
-                            setAllSalesData(data);
-                        }
-                    })
-                    .catch(err => {
-                        if (isMounted) {
-                            console.error("Failed to fetch all sales:", err);
-                            toast({ title: "Error", description: "Could not load sales history.", variant: "destructive" });
-                            setAllSalesData([]); // Clear data on error
-                        }
-                    })
-                    .finally(() => {
-                        if (isMounted) {
-                            setLoadingSales(false); // Sales data fetching is complete.
-                        }
-                    });
+              setAllSalesData(data);
             }
-        } else {
-            // If not authenticated or not an admin after auth check.
+          })
+          .catch(err => {
             if (isMounted) {
-                setAllSalesData([]); // Clear data.
-                setLoadingSales(false); // Not loading sales if not authorized.
+              console.error("Failed to fetch all sales:", err);
+              toast({ title: "Error", description: "Could not load sales history.", variant: "destructive" });
+              setAllSalesData([]); // Clear data on error
             }
-        }
+          })
+          .finally(() => {
+            if (isMounted) {
+              setLoadingSales(false); // Set loading false after fetch completes
+            }
+          });
+      }
+    } else if (!authLoading && (!isAuthenticated || !isAdmin)) {
+      // Auth is resolved, but user is not authorized or not admin.
+      // Clear data and stop loading. The redirect effect handles navigation.
+       if (isMounted) {
+         setAllSalesData([]);
+         setLoadingSales(false);
+       }
     }
+    // If authLoading is true, do nothing in this effect; initial loadingSales state and page-level checks handle UI.
 
     return () => {
-      isMounted = false; // Cleanup function to set isMounted to false when component unmounts.
+      isMounted = false; // Cleanup function
     };
   }, [authLoading, isAuthenticated, isAdmin, fetchUserSales, toast]);
 
@@ -102,7 +95,7 @@ export default function AllSalesHistoryPage() {
   if (!isAuthenticated || !isAdmin) {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">
-            Access Denied. Redirecting...
+            Access Denied. Redirecting to login...
         </div>
     );
   }
