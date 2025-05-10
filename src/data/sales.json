@@ -70,5 +70,23 @@
     "total": 7.15,
     "timestamp": "2025-05-10T07:27:25.336Z",
     "cashierId": "admin"
+  },
+  {
+    "id": "2025-05-10T07:33:38.355Zr6f98em",
+    "items": [
+      {
+        "productId": "1",
+        "name": "Organic Apples",
+        "sku": "FRU-APP-001",
+        "price": 2.99,
+        "quantity": 1
+      }
+    ],
+    "subtotal": 2.99,
+    "taxRate": 0.1,
+    "taxAmount": 0.29900000000000004,
+    "total": 3.289,
+    "timestamp": "2025-05-10T07:33:38.355Z",
+    "cashierId": "admin"
   }
 ]
