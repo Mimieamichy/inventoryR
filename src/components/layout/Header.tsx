@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -31,7 +30,7 @@ export function Header() {
     if (isClient) {
       setItemCount(getCartItemCount());
     }
-  }, [getCartItemCount, isClient, useCart().cartItems]);
+  }, [getCartItemCount, isClient, useCart().cartItems]); // useCart().cartItems ensures re-check when cart changes
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
@@ -43,7 +42,7 @@ export function Header() {
           </h1>
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4">
-          {isAuthenticated && (
+          {isClient && isAuthenticated && (
             <>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/" className="flex items-center gap-1">
@@ -89,7 +88,7 @@ export function Header() {
                   <Link href="/cashier/sale" className="relative flex items-center gap-1">
                     <ShoppingCart className="h-4 w-4" />
                     Cart
-                    {isClient && itemCount > 0 && (
+                    {itemCount > 0 && ( // itemCount is already managed by isClient
                       <Badge variant="destructive" className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full p-0.5 text-xs">
                         {itemCount}
                       </Badge>
