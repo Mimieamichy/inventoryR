@@ -16,27 +16,30 @@ interface ProductContextType {
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useLocalStorage<Product[]>('products', []);
+  const memoizedEmptyProducts = useMemo(() => [], []);
+  const [products, setProducts] = useLocalStorage<Product[]>('products', memoizedEmptyProducts);
   const [loading, setLoading] = useState(true);
 
+  const memoizedInitialProductsData = useMemo(() => {
+    return initialProductsData.map(p => ({
+        ...p,
+        ...(p.imageUrl && p.imageUrl.includes('picsum.photos') && { 'data-ai-hint': p.name.split(' ')[0].toLowerCase() })
+    })) as Product[];
+  }, []);
+
+
   useEffect(() => {
-    // Only load initial data if localStorage is empty
-    if (products.length === 0 && initialProductsData.length > 0) {
-        const productsWithImageHints = initialProductsData.map(p => ({
-            ...p,
-            // ensure data-ai-hint is set if imageUrl is picsum
-            ...(p.imageUrl && p.imageUrl.includes('picsum.photos') && { 'data-ai-hint': p.name.split(' ')[0].toLowerCase() })
-        }))
-      setProducts(productsWithImageHints as Product[]);
+    if (products.length === 0 && memoizedInitialProductsData.length > 0) {
+      setProducts(memoizedInitialProductsData);
     }
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // products and setProducts are stable or intentionally omitted if only for initial load.
+  }, []); // products, setProducts, memoizedInitialProductsData are omitted to run once for initial load logic
 
   const addProduct = useCallback((productData: Omit<Product, 'id'>) => {
     const newProduct: Product = {
       ...productData,
-      id: new Date().toISOString() + Math.random().toString(36).substring(2,9), // Simple unique ID
+      id: new Date().toISOString() + Math.random().toString(36).substring(2,9), 
       'data-ai-hint': productData.name.split(' ')[0].toLowerCase()
     };
     setProducts((prevProducts) => [...prevProducts, newProduct]);

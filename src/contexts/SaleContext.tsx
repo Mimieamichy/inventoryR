@@ -2,17 +2,15 @@
 
 import type { Sale, CartItem } from '@/types';
 import React, { createContext, useContext, type ReactNode, useCallback, useMemo } from 'react';
-// ProductContext is not directly used for quantity updates here anymore, API handles it.
-// import { useProducts } from './ProductContext'; 
 import useLocalStorage from '@/hooks/useLocalStorage';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-export const TAX_RATE = 0.10; // 10% Tax Rate
+export const TAX_RATE = 0.10; 
 
 interface SaleContextType {
-  sales: Sale[]; // This reflects localStorage, might be stale. Pages should fetch.
-  addSale: (cartItems: CartItem[]) => Promise<Sale | null>; // cashierId will be derived from currentUser
+  sales: Sale[]; 
+  addSale: (cartItems: CartItem[]) => Promise<Sale | null>; 
   getSaleById: (saleId: string) => Promise<Sale | null>;
   fetchUserSales: () => Promise<Sale[]>;
 }
@@ -20,7 +18,8 @@ interface SaleContextType {
 const SaleContext = createContext<SaleContextType | undefined>(undefined);
 
 export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [localStorageSales, setLocalStorageSales] = useLocalStorage<Sale[]>('sales', []);
+  const memoizedEmptySales = useMemo(() => [], []);
+  const [localStorageSales, setLocalStorageSales] = useLocalStorage<Sale[]>('sales', memoizedEmptySales);
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -41,7 +40,7 @@ export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         sku: item.sku,
         price: item.price,
         cartQuantity: item.cartQuantity,
-        quantity: item.quantity, // available stock, for API validation
+        quantity: item.quantity, 
         imageUrl: item.imageUrl,
       })),
     };
@@ -63,7 +62,6 @@ export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return null;
       }
       const newSale: Sale = await response.json();
-      // Optionally update localStorageSales if you want a local cache, but primary source is now API
       setLocalStorageSales((prevSales) => [...prevSales, newSale]); 
       return newSale;
     } catch (error) {
@@ -86,7 +84,6 @@ export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       if (!response.ok) {
         if (response.status === 404) {
-          // toast({ title: "Not Found", description: `Sale receipt ${saleId} not found.`, variant: "destructive"});
           return null; 
         }
         const errorData = await response.json();
@@ -118,7 +115,7 @@ export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return [];
       }
       const fetchedSales: Sale[] = await response.json();
-      setLocalStorageSales(fetchedSales); // Update local cache
+      setLocalStorageSales(fetchedSales); 
       return fetchedSales;
     } catch (error) {
       console.error('Error fetching user sales:', error);

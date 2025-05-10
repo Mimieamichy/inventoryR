@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, type Dispatch, type SetStateAction, useCallback } from 'react';
@@ -6,41 +5,29 @@ import { useState, useEffect, type Dispatch, type SetStateAction, useCallback } 
 type SetValue<T> = Dispatch<SetStateAction<T>>;
 
 function useLocalStorage<T>(key: string, initialValue: T): [T, SetValue<T>] {
-  // State to store our value. Initialize with initialValue to ensure server and client match initially.
   const [storedValue, setStoredValue] = useState<T>(initialValue);
 
-  // Effect to read from localStorage on the client after mounting
   useEffect(() => {
-    // This check ensures it only runs on the client
     if (typeof window !== 'undefined') {
       try {
         const item = window.localStorage.getItem(key);
         if (item !== null) {
           setStoredValue(JSON.parse(item) as T);
         } else {
-          // If item is not in localStorage, set it with initialValue.
-          // React state is already initialValue due to useState(initialValue).
           window.localStorage.setItem(key, JSON.stringify(initialValue));
         }
       } catch (error) {
         console.warn(`Error reading localStorage key “${key}”:`, error);
-        setStoredValue(initialValue); // Fallback to initialValue on error
+        // Fallback to initialValue if error, state is already initialValue
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, initialValue]); // key and initialValue: if they change, re-evaluate.
+  }, [key]); // Depend only on key for re-reading. initialValue is for default.
 
   const setValue: SetValue<T> = useCallback(
     (value) => {
-      // The 'value' can be a new value or a function `(prevState) => newState`.
-      // We resolve it first based on the current 'storedValue'.
       const valueToStore = value instanceof Function ? value(storedValue) : value;
-      
-      // Update React state. This will be used for the current render pass if possible,
-      // and schedule a re-render.
       setStoredValue(valueToStore);
-
-      // Then, try to update localStorage if on the client.
       if (typeof window !== 'undefined') {
         try {
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
@@ -53,11 +40,9 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, SetValue<T>] {
         );
       }
     },
-    [key, storedValue] // `storedValue` is needed for the `value(storedValue)` case.
-                       // `setStoredValue` (from useState) is stable and not needed in deps.
+    [key, storedValue]
   );
   
-  // Effect for handling storage events from other tabs
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -70,20 +55,17 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, SetValue<T>] {
             setStoredValue(JSON.parse(event.newValue) as T);
           } catch (error) {
             console.warn(`Error parsing storage change for key “${key}”:`, error);
-            setStoredValue(initialValue); // Fallback to initialValue
+            setStoredValue(initialValue); 
           }
         } else { 
-          // Item was removed from localStorage in another tab, reset to initialValue.
           setStoredValue(initialValue);
-          // Optionally, re-populate localStorage with initialValue here if desired behavior
-          // window.localStorage.setItem(key, JSON.stringify(initialValue));
         }
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [key, initialValue]); // initialValue is needed if we reset to it.
+  }, [key, initialValue]); // initialValue is needed here if state resets to it.
 
   return [storedValue, setValue];
 }

@@ -18,7 +18,8 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [cartItems, setCartItems] = useLocalStorage<CartItem[]>('cart', []);
+  const memoizedEmptyCartItems = useMemo(() => [], []);
+  const [cartItems, setCartItems] = useLocalStorage<CartItem[]>('cart', memoizedEmptyCartItems);
   const { toast } = useToast();
 
   const addToCart = useCallback((product: Product, quantity: number) => {
@@ -58,10 +59,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         toast({ title: "Item removed", description: `${itemToUpdate.name} removed from cart.`})
         return prevItems.filter((item) => item.id !== productId);
       }
-      if (itemToUpdate.quantity < newQuantity) { // itemToUpdate.quantity is the original product stock
+      if (itemToUpdate.quantity < newQuantity) { 
         toast({ title: "Not enough stock", description: `Only ${itemToUpdate.quantity} of ${itemToUpdate.name} available.`, variant: "destructive" });
         return prevItems.map((item) =>
-          item.id === productId ? { ...item, cartQuantity: itemToUpdate.quantity } : item // Cap at available stock
+          item.id === productId ? { ...item, cartQuantity: itemToUpdate.quantity } : item
         );
       }
       return prevItems.map((item) =>
