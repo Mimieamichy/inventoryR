@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSales } from '@/contexts/SaleContext';
@@ -17,13 +16,13 @@ import type { Sale } from '@/types';
 
 export default function AllSalesHistoryPage() {
   const { fetchUserSales } = useSales();
-  const { isAdmin, isAuthenticated, loading: authLoading } = useAuth();
+  const { isAdmin, isAuthenticated, loading: authLoading } = useAuth(); // authLoading is from AuthContext
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   
   const [allSalesData, setAllSalesData] = useState<Sale[]>([]);
-  const [loadingSales, setLoadingSales] = useState(true);
+  const [loadingSales, setLoadingSales] = useState(true); // Specific to this page's data fetching
 
   useEffect(() => {
     setIsClient(true);
@@ -31,37 +30,65 @@ export default function AllSalesHistoryPage() {
   
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !isAdmin)) {
-      toast({ title: "Access Denied", description: "You must be an admin to view all sales history.", variant: "destructive"});
+      // Toast is shown once, then redirect. Avoid repeated toasts if component lingers.
+      // Consider if toast is necessary if redirect is immediate.
+      // toast({ title: "Access Denied", description: "You must be an admin to view all sales history.", variant: "destructive"});
       router.push('/login');
     }
   }, [authLoading, isAuthenticated, isAdmin, router, toast]);
 
   useEffect(() => {
+    let isMounted = true;
     if (isAuthenticated && isAdmin) {
       setLoadingSales(true);
       fetchUserSales()
         .then(data => {
-          setAllSalesData(data);
+          if (isMounted) {
+            setAllSalesData(data);
+          }
         })
         .catch(err => {
-          console.error("Failed to fetch all sales:", err);
-          toast({ title: "Error", description: "Could not load sales history.", variant: "destructive" });
+          if (isMounted) {
+            console.error("Failed to fetch all sales:", err);
+            // Toast is handled by fetchUserSales in context now
+            // toast({ title: "Error", description: "Could not load sales history.", variant: "destructive" });
+          }
         })
         .finally(() => {
-          setLoadingSales(false);
+          if (isMounted) {
+            setLoadingSales(false);
+          }
         });
+    } else if (!authLoading) { // If not authenticated/admin and auth check is complete
+        if (isMounted) {
+            setAllSalesData([]); // Clear data if not authorized
+            setLoadingSales(false); // Not loading if not authorized to fetch
+        }
     }
-  }, [isAuthenticated, isAdmin, fetchUserSales, toast]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, isAdmin, fetchUserSales, authLoading, toast]); // Added authLoading
 
 
   const sortedSales = useMemo(() => {
     return [...allSalesData].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [allSalesData]);
 
-  if (authLoading || !isAdmin) {
+  // Primary loading state for auth check
+  if (authLoading) {
     return <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">Checking permissions...</div>;
   }
+
+  // If auth check done, but not authenticated/admin (should be caught by redirect effect, but as a fallback)
+  if (!isAuthenticated || !isAdmin) {
+     // This state should ideally lead to a quick redirect via the other useEffect.
+     // Showing a generic message or null.
+    return <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">Access Denied. Redirecting...</div>;
+  }
   
+  // Sales data specific loading state
   if (loadingSales) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">

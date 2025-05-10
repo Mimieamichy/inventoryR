@@ -1,7 +1,7 @@
 "use client";
 
 import type { User, UserRole } from '@/types';
-import React, { createContext, useContext, type ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, type ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import useLocalStorage from '@/hooks/useLocalStorage';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -9,22 +9,21 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   currentUser: User | null;
   users: User[];
-  login: (username: string, password?: string) => boolean; // Password optional for initial login, required for others
+  login: (username: string, password?: string) => boolean; 
   logout: () => void;
-  registerUser: (userData: Omit<User, 'id'>) => User | null; // For admin to add cashiers
+  registerUser: (userData: Omit<User, 'id'>) => User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isCashier: boolean;
-  loading: boolean;
+  loading: boolean; // Auth loading state
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Default admin user (IMPORTANT: For simulation only. Use a secure backend in production)
 export const DEFAULT_ADMIN_USER: User = {
   id: 'admin-001',
   username: 'admin',
-  password: 'password', // Simulate password for login
+  password: 'password', 
   role: 'admin',
   name: 'Administrator',
 };
@@ -32,40 +31,27 @@ export const DEFAULT_ADMIN_USER: User = {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [users, setUsers] = useLocalStorage<User[]>('users', [DEFAULT_ADMIN_USER]);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true); // Renamed to authLoading for clarity
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if currentUser in localStorage is still valid (exists in users list)
     if (currentUser && !users.find(u => u.id === currentUser.id)) {
-      setCurrentUser(null); // Invalidate if user was deleted
+      setCurrentUser(null); 
     }
-    setLoading(false);
+    setAuthLoading(false);
   }, [users, currentUser, setCurrentUser]);
 
-
-  // The following block was removed as it caused hydration mismatches:
-  // if (loading && typeof window !== 'undefined' && window.location.pathname !== '/login') {
-  //    // Show a simple loading state or null to prevent flashing content if not on login page
-  //    // and authentication is still loading
-  //    return null; 
-  // }
-  // AuthProvider will now always render its children. Child components are responsible for
-  // displaying their own loading states (e.g., skeletons) based on the `loading`
-  // value from this context. This ensures consistency between server and client renders.
-
-  const login = (username: string, password?: string): boolean => {
+  const login = useCallback((username: string, password?: string): boolean => {
     const user = users.find((u) => u.username === username);
     
     if (user) {
-      // Simulate password check (IMPORTANT: DO NOT use this in production)
       if (user.password && password && user.password === password) {
         setCurrentUser(user);
         toast({ title: "Login Successful", description: `Welcome back, ${user.name}!`});
-        router.push('/'); // Redirect to home or dashboard
+        router.push('/'); 
         return true;
-      } else if (!user.password && !password) { // For initial "guest" or simplified login if no password set
+      } else if (!user.password && !password) { 
         setCurrentUser(user);
         toast({ title: "Login Successful", description: `Welcome back, ${user.name}!`});
         router.push('/');
@@ -76,15 +62,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     toast({ title: "Login Failed", description: "User not found.", variant: "destructive" });
     return false;
-  };
+  }, [users, setCurrentUser, router, toast]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setCurrentUser(null);
     toast({ title: "Logged Out", description: "You have been successfully logged out."});
     router.push('/login');
-  };
+  }, [setCurrentUser, router, toast]);
 
-  const registerUser = (userData: Omit<User, 'id'>): User | null => {
+  const registerUser = useCallback((userData: Omit<User, 'id'>): User | null => {
     if (!currentUser || currentUser.role !== 'admin') {
       toast({ title: "Access Denied", description: "Only admins can register new users.", variant: "destructive"});
       return null;
@@ -100,14 +86,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUsers((prevUsers) => [...prevUsers, newUser]);
     toast({ title: "User Registered", description: `${newUser.role === 'cashier' ? 'Cashier' : 'User'} ${newUser.name} created successfully.`});
     return newUser;
-  };
+  }, [currentUser, users, setUsers, toast]);
 
-  const isAuthenticated = !!currentUser;
-  const isAdmin = currentUser?.role === 'admin';
-  const isCashier = currentUser?.role === 'cashier';
+  const isAuthenticated = useMemo(() => !!currentUser, [currentUser]);
+  const isAdmin = useMemo(() => currentUser?.role === 'admin', [currentUser]);
+  const isCashier = useMemo(() => currentUser?.role === 'cashier', [currentUser]);
+
+  const contextValue = useMemo(() => ({
+    currentUser,
+    users,
+    login,
+    logout,
+    registerUser,
+    isAuthenticated,
+    isAdmin,
+    isCashier,
+    loading: authLoading // Provide authLoading as 'loading'
+  }), [currentUser, users, login, logout, registerUser, isAuthenticated, isAdmin, isCashier, authLoading]);
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, login, logout, registerUser, isAuthenticated, isAdmin, isCashier, loading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -120,4 +118,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
