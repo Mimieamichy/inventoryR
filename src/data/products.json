@@ -36,7 +36,7 @@
     "name": "Avocado",
     "sku": "FRU-AVO-005",
     "price": 1.99,
-    "quantity": 120,
+    "quantity": 119,
     "imageUrl": "https://picsum.photos/seed/avocado/400/300"
   }
 ]

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Sale, CartItem } from '@/types';
-import React, { createContext, useContext, type ReactNode } from 'react';
+import React, { createContext, useContext, type ReactNode, useCallback } from 'react';
 // ProductContext is not directly used for quantity updates here anymore, API handles it.
 // import { useProducts } from './ProductContext'; 
 import useLocalStorage from '@/hooks/useLocalStorage';
@@ -24,7 +24,7 @@ export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
-  const addSale = async (cartItems: CartItem[]): Promise<Sale | null> => {
+  const addSale = useCallback(async (cartItems: CartItem[]): Promise<Sale | null> => {
     if (cartItems.length === 0) {
         toast({ title: "Empty Cart", description: "Cannot process an empty cart.", variant: "destructive"});
         return null;
@@ -71,9 +71,9 @@ export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       toast({ title: "Sale Error", description: "An unexpected error occurred.", variant: "destructive" });
       return null;
     }
-  };
+  }, [currentUser, toast, setLocalStorageSales]);
 
-  const getSaleById = async (saleId: string): Promise<Sale | null> => {
+  const getSaleById = useCallback(async (saleId: string): Promise<Sale | null> => {
     if (!currentUser) {
         toast({ title: "Not Authenticated", description: "User must be logged in to view sales.", variant: "destructive"});
         return null;
@@ -100,9 +100,9 @@ export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       toast({ title: "Fetch Error", description: "An unexpected error occurred while fetching the sale.", variant: "destructive" });
       return null;
     }
-  };
+  }, [currentUser, toast]);
 
-  const fetchUserSales = async (): Promise<Sale[]> => {
+  const fetchUserSales = useCallback(async (): Promise<Sale[]> => {
     if (!currentUser) {
         toast({ title: "Not Authenticated", description: "User must be logged in to view sales history.", variant: "destructive"});
         return [];
@@ -125,7 +125,7 @@ export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       toast({ title: "Fetch Error", description: "An unexpected error occurred while fetching sales history.", variant: "destructive" });
       return [];
     }
-  };
+  }, [currentUser, toast, setLocalStorageSales]);
 
   return (
     <SaleContext.Provider value={{ sales: localStorageSales, addSale, getSaleById, fetchUserSales }}>
@@ -141,3 +141,4 @@ export const useSales = (): SaleContextType => {
   }
   return context;
 };
+
