@@ -1,7 +1,7 @@
 "use client";
 
 import type { Sale, CartItem } from '@/types';
-import React, { createContext, useContext, type ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, type ReactNode, useCallback, useMemo } from 'react';
 // ProductContext is not directly used for quantity updates here anymore, API handles it.
 // import { useProducts } from './ProductContext'; 
 import useLocalStorage from '@/hooks/useLocalStorage';
@@ -127,8 +127,15 @@ export const SaleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentUser, toast, setLocalStorageSales]);
 
+  const contextValue = useMemo(() => ({
+    sales: localStorageSales,
+    addSale,
+    getSaleById,
+    fetchUserSales
+  }), [localStorageSales, addSale, getSaleById, fetchUserSales]);
+
   return (
-    <SaleContext.Provider value={{ sales: localStorageSales, addSale, getSaleById, fetchUserSales }}>
+    <SaleContext.Provider value={contextValue}>
       {children}
     </SaleContext.Provider>
   );
@@ -141,4 +148,3 @@ export const useSales = (): SaleContextType => {
   }
   return context;
 };
-

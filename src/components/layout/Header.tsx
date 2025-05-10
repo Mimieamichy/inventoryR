@@ -19,18 +19,14 @@ import {
 export function Header() {
   const { getCartItemCount } = useCart();
   const { currentUser, logout, isAdmin, isCashier, isAuthenticated } = useAuth();
-  const [itemCount, setItemCount] = useState(0);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  useEffect(() => {
-    if (isClient) {
-      setItemCount(getCartItemCount());
-    }
-  }, [getCartItemCount, isClient, useCart().cartItems]); // useCart().cartItems ensures re-check when cart changes
+  // Derive itemCount directly; getCartItemCount is memoized in context
+  const itemCount = isClient ? getCartItemCount() : 0;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
@@ -88,7 +84,7 @@ export function Header() {
                   <Link href="/cashier/sale" className="relative flex items-center gap-1">
                     <ShoppingCart className="h-4 w-4" />
                     Cart
-                    {itemCount > 0 && ( // itemCount is already managed by isClient
+                    {itemCount > 0 && ( 
                       <Badge variant="destructive" className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full p-0.5 text-xs">
                         {itemCount}
                       </Badge>

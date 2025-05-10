@@ -1,7 +1,7 @@
 "use client";
 
 import type { Product } from '@/types';
-import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, type ReactNode, useEffect, useMemo, useCallback } from 'react';
 import initialProductsData from '@/data/products.json';
 import useLocalStorage from '@/hooks/useLocalStorage';
 
@@ -30,31 +30,40 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       setProducts(productsWithImageHints as Product[]);
     }
     setLoading(false);
-  }, []); // Removed setProducts from dependency array to avoid loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // products and setProducts are stable or intentionally omitted if only for initial load.
 
-  const addProduct = (productData: Omit<Product, 'id'>) => {
+  const addProduct = useCallback((productData: Omit<Product, 'id'>) => {
     const newProduct: Product = {
       ...productData,
       id: new Date().toISOString() + Math.random().toString(36).substring(2,9), // Simple unique ID
       'data-ai-hint': productData.name.split(' ')[0].toLowerCase()
     };
     setProducts((prevProducts) => [...prevProducts, newProduct]);
-  };
+  }, [setProducts]);
 
-  const updateProductQuantity = (productId: string, quantityChange: number) => {
+  const updateProductQuantity = useCallback((productId: string, quantityChange: number) => {
     setProducts((prevProducts) =>
       prevProducts.map((p) =>
         p.id === productId ? { ...p, quantity: p.quantity + quantityChange } : p
       )
     );
-  };
+  }, [setProducts]);
 
-  const getProductById = (productId: string): Product | undefined => {
+  const getProductById = useCallback((productId: string): Product | undefined => {
     return products.find(p => p.id === productId);
-  };
+  }, [products]);
+
+  const contextValue = useMemo(() => ({
+    products,
+    addProduct,
+    updateProductQuantity,
+    getProductById,
+    loading
+  }), [products, addProduct, updateProductQuantity, getProductById, loading]);
 
   return (
-    <ProductContext.Provider value={{ products, addProduct, updateProductQuantity, getProductById, loading }}>
+    <ProductContext.Provider value={contextValue}>
       {children}
     </ProductContext.Provider>
   );
